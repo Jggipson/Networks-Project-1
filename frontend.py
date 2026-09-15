@@ -12,6 +12,7 @@ class MainWindow(QMainWindow):
 
         # Create the browser view and make it the central widget.
         self.view = QWebEngineView()
+        self.view.setUrl(QUrl("https://www.tarleton.edu"))
         self.setCentralWidget(self.view)
 
         # Add a toolbar to hold browser controls.
