@@ -61,16 +61,23 @@ class WebServer:
                 method, path = self.parse_request(raw_request)
 
                 if method == "GET":
-                    # Pass the requested URI to the Cache Manager
-                    html_payload = self.cache_manager.get_payload(path)
+                    # Pass requested path to Cache Manager's fetch_resource method
+                    html_payload = self.cache_manager.fetch_resource(path)
 
-                    response = (
-                        "HTTP/1.1 200 OK\r\n"
-                        "Content-Type: text/html\r\n"
-                        f"Content-Length: {len(html_payload)}\r\n"
-                        "Connection: close\r\n\r\n" + html_payload
-                    )
-                    client_socket.sendall(response.encode('utf-8'))
+                    if html_payload is None:
+                        response = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                        client_socket.sendall(response.encode('utf-8'))
+                    else:
+                        if isinstance(html_payload, bytes):
+                            html_payload = html_payload.decode('utf-8')
+
+                        response = (
+                            "HTTP/1.1 200 OK\r\n"
+                            "Content-Type: text/html\r\n"
+                            f"Content-Length: {len(html_payload.encode('utf-8'))}\r\n"
+                            "Connection: close\r\n\r\n" + html_payload
+                        )
+                        client_socket.sendall(response.encode('utf-8'))
                 else:
                     client_socket.sendall("HTTP/1.1 400 Bad Request\r\n\r\n".encode('utf-8'))
 
@@ -79,5 +86,4 @@ class WebServer:
             finally:
                 if client_socket:
                     client_socket.close()
-                # Clean up unused RAM on the Pico 2 W
                 gc.collect()

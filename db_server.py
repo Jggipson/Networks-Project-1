@@ -1,45 +1,18 @@
 """
 Database Server Class
 ----------------------
-COSC 4378 Lab Project — Database Administrator deliverable.
+COSC 4378 Lab Project — Database Administrator deliverable[cite: 1].
 
-Runs on the Raspberry Pi 5. Listens on a TCP socket (default port 9000)
+Runs on the Raspberry Pi 5[cite: 1]. Listens on a TCP socket (default port 9000)
 for requests from the Cache Manager (Backend API, running on the
-Pico 2 W). On each request, looks up the requested HTML payload in
-MariaDB and sends it back.
-
-Requires the official MariaDB Python connector:
-    pip install mariadb
-
-Protocol (DBSP — a simple line-based text protocol, deliberately
-close to HTTP so it's easy to eyeball in a packet capture):
-
-    Request  (Cache Manager -> Database Server):
-        "GET <path>\n"
-        e.g. "GET /index.html\n"
-
-    Response (Database Server -> Cache Manager):
-        Success:
-            "200 OK\r\nContent-Length: <n>\r\n\r\n<html bytes>"
-        Not found:
-            "404 NOT FOUND\r\n\r\n"
-        Malformed request:
-            "400 BAD REQUEST\r\n\r\n"
-        Server-side error (DB down, query failed, etc.):
-            "500 ERROR\r\n\r\n"
-
-Coordinate this exact format with your Backend API Developer —
-this file's docstring is the contract between your two classes.
+Pico 2 W)[cite: 1]. On each request, looks up the requested HTML payload in
+MariaDB and sends it back[cite: 1].
 """
 
 import socket
 import threading
 import logging
-
-try:
-    import mariadb
-except ImportError:  # pragma: no cover
-    mariadb = None
+import mariadb
 
 logging.basicConfig(
     level=logging.INFO,
@@ -71,10 +44,6 @@ class DatabaseServer:
             "database": db_name,
         }
         self._sock = None
-
-    # ---------------------------------------------------------------
-    # Database access
-    # ---------------------------------------------------------------
 
     def _get_connection(self):
         if mariadb is None:
@@ -136,10 +105,6 @@ class DatabaseServer:
         finally:
             if conn is not None:
                 conn.close()
-
-    # ---------------------------------------------------------------
-    # Networking
-    # ---------------------------------------------------------------
 
     def start(self):
         """Bind, listen, and accept connections until interrupted."""
@@ -228,7 +193,7 @@ if __name__ == "__main__":
         port=9000,
         db_host="127.0.0.1",
         db_user="webserver",
-        db_password="changeme",  # TODO: match schema.sql / your real creds
+        db_password="changeme",
         db_name="webserver_db",
     )
     server.start()

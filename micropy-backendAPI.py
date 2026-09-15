@@ -41,8 +41,8 @@ class CacheManager:
             sock.settimeout(3.0)
             sock.connect(target_info)
 
-            # Transmit wire protocol query
-            outbound_msg = f"{resource_uri}\n".encode("utf-8")
+            # Transmit wire protocol query matching DBSP specifications
+            outbound_msg = f"GET {resource_uri}\n".encode("utf-8")
             sock.send(outbound_msg)
 
             # Receive incoming stream chunks
@@ -54,10 +54,17 @@ class CacheManager:
                 stream_buffer.append(chunk)
 
             complete_payload = b"".join(stream_buffer)
-            if complete_payload.startswith(b"ERROR"):
+            
+            # Reject errors and non-200 responses
+            if not complete_payload.startswith(b"200 OK"):
                 return None
 
-            return complete_payload
+            # Strip DBSP protocol headers to extract raw HTML body
+            if b"\r\n\r\n" in complete_payload:
+                _, body = complete_payload.split(b"\r\n\r\n", 1)
+                return body.decode("utf-8")
+
+            return None
 
         except Exception as err:
             print(f"[ERROR] DB socket communication failed: {err}")
