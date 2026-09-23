@@ -13,7 +13,7 @@ BACKEND_PORT = 9000
 
 
 def connect_wifi():
-
+# Create and Connect to the specified Wi-Fi network
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
 
@@ -29,7 +29,7 @@ def connect_wifi():
 
 
 def start_server():
-
+# Create TCP socket for HTTP server
     server = socket.socket()
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -42,15 +42,18 @@ def start_server():
 
 
 def request_backend(path):
-
+# Create a socket to communicate with the Pi
     sock = socket.socket()
 
     try:
+# Connect to backend
         sock.connect((PI5_IP_ADDRESS, BACKEND_PORT))
-
+        
+# Send the requested from backend
         request = path + "\n"
         sock.send(request.encode())
-
+        
+# Receive the HTML response from the backend
         response = sock.recv(4096)
 
         return response.decode()
