@@ -1,29 +1,24 @@
-"""
-Database Server Class
-----------------------
-COSC 4378 Lab Project — Database Administrator deliverable[cite: 1].
+#This program runs a database server that receives page requests, looks up 
+#the matching HTML content in MariaDB, and sends it back to the requesting client.
 
-Runs on the Raspberry Pi 5[cite: 1]. Listens on a TCP socket (default port 9000)
-for requests from the Cache Manager (Backend API, running on the
-Pico 2 W)[cite: 1]. On each request, looks up the requested HTML payload in
-MariaDB and sends it back[cite: 1].
-"""
-
+#These libraries give the server the tools it needs to communicate over the network,
+#handle several clients at once, record useful messages, and talk to MariaDB!
 import socket
 import threading
 import logging
 import mariadb
 
+#This sets up readable log messages so we can see what the server is doing while it runs.
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger("DatabaseServer")
 
-
+#This entire class is the database server that listens for requests and serves HTML payloads from MariaDB.
 class DatabaseServer:
     """TCP server that serves HTML payloads out of MariaDB."""
-
+    #This saves the network and database details that the server will use throughout its lifetime.
     def __init__(
         self,
         host="0.0.0.0",
@@ -45,6 +40,7 @@ class DatabaseServer:
         }
         self._sock = None
 
+    #This creates a fresh connection to MariaDB whenever the server needs to use the database.
     def _get_connection(self):
         if mariadb is None:
             raise RuntimeError(
@@ -57,6 +53,8 @@ class DatabaseServer:
             logger.error(f"Could not connect to MariaDB: {e}")
             raise
 
+    #This looks up a requested path and returns the matching HTML page as bytes.
+    #If return None is triggered then it signals to the caller that the page was not found.
     def fetch_payload(self, path: str):
         """
         Look up the HTML payload for a given request path.
@@ -84,6 +82,8 @@ class DatabaseServer:
             if conn is not None:
                 conn.close()
 
+    #This adds a page to the database, or replaces its HTML if that path already exists.
+    #This can be useful for loading and updating the pages the server will serve!
     def insert_or_update_page(self, path: str, html_content: str):
         """Helper for seeding/updating pages programmatically."""
         conn = None
@@ -106,6 +106,8 @@ class DatabaseServer:
             if conn is not None:
                 conn.close()
 
+    #This opens the listening socket and gives each incoming client its own worker thread.
+    #This will let the server handle multiple requests without making clients wait in line!!
     def start(self):
         """Bind, listen, and accept connections until interrupted."""
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -129,6 +131,8 @@ class DatabaseServer:
         finally:
             self._sock.close()
 
+    #This handles one client's complete request with the following steps: read the request, check that it is a GET request,
+    #find the page in MariaDB, and send back the corresponding result.
     def _handle_client(self, client_sock, addr):
         try:
             request_line = self._read_line(client_sock)
@@ -161,6 +165,8 @@ class DatabaseServer:
         finally:
             client_sock.close()
 
+    #This reads the request a little at a time until the client sends a newline.
+    #Having the byte limit will keep the client from sending a request that is unreasonably large and could cause problems for the server.
     def _read_line(self, sock, max_bytes=2048):
         """Read from the socket until a newline shows up."""
         buf = b""
@@ -171,6 +177,8 @@ class DatabaseServer:
             buf += chunk
         return buf.decode("utf-8", errors="replace")
 
+    #This translates the result into the simple response format expected by the client.
+    #If a page was found, it will include its length and HTML content in the response!
     def _send_response(self, sock, status_code, payload: bytes):
         status_text = {
             200: "200 OK",
@@ -186,7 +194,7 @@ class DatabaseServer:
             header = f"{status_text}\r\n\r\n"
             sock.sendall(header.encode("utf-8"))
 
-
+#This builds the server with the project's settings and start it when this file is run directly.
 if __name__ == "__main__":
     server = DatabaseServer(
         host="0.0.0.0",
