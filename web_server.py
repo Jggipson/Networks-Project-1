@@ -1,11 +1,11 @@
 import time
 import gc
 try:
-    # Runs on the Raspberry Pi Pico 2 W
+    # runs on the Raspberry Pi Pico 2 W
     import usocket as socket
     import network
 except ImportError:
-    # Fallback when running on desktop PC
+    # fallback when running on desktop PC
     import socket
     network = None
 
@@ -13,21 +13,23 @@ class WebServer:
     def __init__(self, cache_manager, port=80):
         self.port = port
         self.server_socket = None
-        # Accept the real Cache Manager instance passed from main
+        # accept the real Cache Manager instance passed from main
         self.cache_manager = cache_manager
 
     def connect_wifi(self, ssid, password):
-        """Connects the Pico 2 W to the local Wi-Fi network."""
+        # connects the Pico 2 W to the local Wi-Fi network
         wlan = network.WLAN(network.STA_IF)
         wlan.active(True)
         wlan.connect(ssid, password)
-        
+
+        #if we are unable to connect within the timeout amoutn
         timeout = 10
         while not wlan.isconnected() and timeout > 0:
             print("Connecting to Wi-Fi...")
             time.sleep(1)
             timeout -= 1
-            
+
+        #print statement of whether the connection to the wifi was successful or not
         if wlan.isconnected():
             print("Connected! Pico IP:", wlan.ifconfig()[0])
             return wlan.ifconfig()[0]
@@ -38,14 +40,14 @@ class WebServer:
         """Extracts the HTTP method and URI path from the request."""
         try:
             lines = raw_request.split("\r\n")
-            first_line = lines[0]  # e.g., "GET /index.html HTTP/1.1"
+            first_line = lines[0]  # will read url for example "GET /index.html HTTP/1.1"
             parts = first_line.split(" ")
             return parts[0], parts[1]
         except Exception:
             return None, None
 
     def start(self):
-        """Starts the socket server listener."""
+        # starts the socket server listener.
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_socket.bind(('', self.port))
@@ -61,7 +63,7 @@ class WebServer:
                 method, path = self.parse_request(raw_request)
 
                 if method == "GET":
-                    # Pass requested path to Cache Manager's fetch_resource method
+                    # pass requested path to Cache Manager's fetch_resource method
                     html_payload = self.cache_manager.fetch_resource(path)
 
                     if html_payload is None:
@@ -71,6 +73,7 @@ class WebServer:
                         if isinstance(html_payload, bytes):
                             html_payload = html_payload.decode('utf-8')
 
+                        # text displayed if the connection was successful
                         response = (
                             "HTTP/1.1 200 OK\r\n"
                             "Content-Type: text/html\r\n"
@@ -83,7 +86,7 @@ class WebServer:
 
             except Exception as e:
                 print("Error processing request:", e)
-            finally:
+            finally: #closes socket after completed
                 if client_socket:
                     client_socket.close()
                 gc.collect()
